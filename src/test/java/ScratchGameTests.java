@@ -48,6 +48,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(1, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
@@ -74,6 +76,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_4_times"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(1, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
@@ -100,12 +104,43 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times"),winingCombinations);
         assertEquals(5000, reward.getReward(), 0);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(1, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
                 .sum());
         assertEquals(new ArrayList<>(Arrays.asList("5x")), reward.getAppliedBonusSymbols());
+    }
+
+    @Test
+    public void test_same_symbol_3_times_and_miss_bonus() throws Exception {
+        fixedMatrix = new String[][]{
+                {"A", "B", "A"},
+                {"C", "F", "B"},
+                {"MISS", "C", "C"}
+        };
+
+        Map<String, Integer> symbolCounts = new HashMap<>();
+        symbolCounts.put("C", 3);
+        symbolCounts.put("A", 2);
+        symbolCounts.put("B", 2);
+        symbolCounts.put("F", 1);
+        symbolCounts.put("MISS", 1);
+
+
+        PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
+        PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
+        Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times"),winingCombinations);
+        assertEquals(1000, reward.getReward(), 0);
+        assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
+        assertEquals(1, reward.getAppliedWiningCombinations().values().stream()
+                .mapToInt(List::size)
+                .sum());
+        assertEquals(0, reward.getAppliedBonusSymbols().size());
     }
 
     @Test
@@ -126,6 +161,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times"),winingCombinations);
         assertEquals(2000, reward.getReward(), 0);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(1, reward.getAppliedWiningCombinations().values().stream()
@@ -152,6 +189,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times","same_symbols_horizontally"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(2, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
@@ -177,6 +216,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times","same_symbols_vertically"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(2, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
@@ -202,6 +243,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times","same_symbols_diagonally_left_to_right"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(2, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)
@@ -227,6 +270,8 @@ public class ScratchGameTests {
         PowerMockito.doReturn(fixedMatrix).when(scratchGame, "generateRandomMatrix");
         PowerMockito.doReturn(symbolCounts).when(scratchGame, "getSymbolCounts");
         Reward reward = scratchGame.bet(100);
+        List<String> winingCombinations = reward.getAppliedWiningCombinations().get("C");
+        assertEquals(Arrays.asList("same_symbol_3_times","same_symbols_diagonally_right_to_left"),winingCombinations);
         assertEquals(1, reward.getAppliedWiningCombinations().keySet().size());
         assertEquals(2, reward.getAppliedWiningCombinations().values().stream()
                 .mapToInt(List::size)

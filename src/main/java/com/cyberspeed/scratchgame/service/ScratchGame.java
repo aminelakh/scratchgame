@@ -12,12 +12,13 @@ public class ScratchGame {
     private final Config config;
     private int rows;
     private int columns;
-    private static final int DEFAULT_ROWS=3;
-    private static final int DEFAULT_COLUMNS=3;
+    private static final int DEFAULT_ROWS = 3;
+    private static final int DEFAULT_COLUMNS = 3;
     private Map<String, Symbol> symbols;
     private Map<String, WinCombination> winCombinations;
-    private Map<String,Integer> standardProbabilities;
-    private Map<String,Integer> bonusProbabilities;
+    private Map<String, Integer> standardProbabilities;
+    private Map<String, Integer> bonusProbabilities;
+    private Random random = new Random();
     private Map<String, Integer> symbolCounts = new HashMap<>();
     private Set<String> horizontalLines = new HashSet<>();
     private Set<String> verticalLines = new HashSet<>();
@@ -25,30 +26,31 @@ public class ScratchGame {
     private Set<String> rightToLeftDiagonal = new HashSet<>();
 
 
-    public ScratchGame(Config config){
-        this.config=config;
+    public ScratchGame(Config config) {
+        this.config = config;
         this.symbols = config.getSymbols();
         this.standardProbabilities = config.getProbabilities().getStandardSymbols().getSymbols();
         this.bonusProbabilities = config.getProbabilities().getBonusSymbols().getSymbols();
-        this.rows = Integer.valueOf(config.getRows()) == null?DEFAULT_ROWS: config.getRows();
-        this.columns = Integer.valueOf(config.getColumns()) == null?DEFAULT_COLUMNS: config.getColumns();
+        this.rows = Integer.valueOf(config.getRows()) == null ? DEFAULT_ROWS : config.getRows();
+        this.columns = Integer.valueOf(config.getColumns()) == null ? DEFAULT_COLUMNS : config.getColumns();
         this.winCombinations = config.getWinCombinations();
     }
 
+    /**
+     *
+     * @param amount
+     * @return
+     * @throws Exception
+     */
     public Reward bet(double amount) throws Exception {
 
         Reward reward = new Reward();
-
-       /* if(getSymbolCounts().keySet().contains("MISS")){
-            reward.setReward(0);
-            return reward;
-        }*/
-
         Map<String, List<String>> appliedWiningCombinations = new HashMap<>();
         List<String> appliedBonusSymbols = new ArrayList<>();
         String[][] matrix = generateRandomMatrix();
+
         /*It is not clear in the requirements if the rule of min 3 occurrences rule should be applied to standard symbols and bonus symbols too
-        * or only standard symbols, I have made the choice to apply it to basic symbols only as It makes more sense to me */
+         * or only standard symbols, I have made the choice to apply it to basic symbols only as It makes more sense to me */
 
         Map<String, Integer> standardWiningSymbolsMap = getSymbolCounts().entrySet()
                 .stream()
@@ -63,9 +65,9 @@ public class ScratchGame {
             for (Map.Entry<String, WinCombination> c : winCombinations.entrySet()) {
                 String combination = c.getKey();
                 WinCombination winCombination = c.getValue();
-                if("same_symbols".equals(winCombination.getGroup()) && count == winCombination.getCount()){
+                if ("same_symbols".equals(winCombination.getGroup()) && count.equals(winCombination.getCount())) {
                     combinations.add(combination);
-                    appliedWiningCombinations.put(symbol,combinations);
+                    appliedWiningCombinations.put(symbol, combinations);
                     break;
                 }
             }
@@ -74,6 +76,7 @@ public class ScratchGame {
         Map<String, Integer> bonusWiningSymbolsMap = getSymbolCounts().entrySet()
                 .stream()
                 .filter(entry -> config.getSymbols().get(entry.getKey()).isBonusSymbol())
+                .filter(entry -> !config.getSymbols().get(entry.getKey()).getImpact().equals("miss"))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         /*Bonus symbols might occur multiple times, this will be considered in the reward calculation as I m keeping a map with their counters,
@@ -84,7 +87,7 @@ public class ScratchGame {
         getVerticalLines(matrix);
 
         /* we can only check diagonals for square matrix*/
-        if (rows == columns){
+        if (rows == columns) {
             getLeftToRightDiagonal(matrix);
             getRightToLeftDiagonal(matrix);
         }
@@ -95,13 +98,13 @@ public class ScratchGame {
             String symbol = entry.getKey();
             List<String> combinations = entry.getValue();
 
-            if(horizontalLines.contains(symbol)){
+            if (horizontalLines.contains(symbol)) {
                 combinations.add("same_symbols_horizontally");
             }
-            if(verticalLines.contains(symbol)){
+            if (verticalLines.contains(symbol)) {
                 combinations.add("same_symbols_vertically");
             }
-            if(leftToRightDiagonal.contains(symbol)){
+            if (leftToRightDiagonal.contains(symbol)) {
                 combinations.add("same_symbols_diagonally_left_to_right");
             }
             if (rightToLeftDiagonal.contains(symbol)) {
@@ -113,114 +116,137 @@ public class ScratchGame {
         reward.setMatrix(matrix);
         reward.setAppliedWiningCombinations(appliedWiningCombinations);
         reward.setAppliedBonusSymbols(appliedBonusSymbols);
-        reward.setReward(calculateTotalReward(appliedWiningCombinations,appliedBonusSymbols,amount));
+        reward.setReward(calculateTotalReward(appliedWiningCombinations, appliedBonusSymbols, amount));
         return reward;
     }
 
-
-    private double calculateTotalReward(Map<String, List<String>> appliedWiningCombinations,List<String> appliedBonusSymbols,double amount){
+    /**
+     *
+     * @param appliedWiningCombinations
+     * @param appliedBonusSymbols
+     * @param amount
+     * @return
+     */
+    private double calculateTotalReward(Map<String, List<String>> appliedWiningCombinations, List<String> appliedBonusSymbols, double amount) {
 
         double totalReward = 0.0;
 
-        if (appliedWiningCombinations.size() > 0){
+        if (appliedWiningCombinations.size() > 0) {
             for (Map.Entry<String, List<String>> entry : appliedWiningCombinations.entrySet()) {
-                double rewardBySymbol =1.0;
+                double rewardBySymbol = 1.0;
                 String symbol = entry.getKey();
                 List<String> combinations = entry.getValue();
                 Double symbolReward = symbols.get(symbol).getRewardMultiplier();
-                rewardBySymbol = rewardBySymbol*symbolReward;
-                for(String combination:combinations){
-                    WinCombination winCombination =winCombinations.get(combination);
+                rewardBySymbol = rewardBySymbol * symbolReward;
+                for (String combination : combinations) {
+                    WinCombination winCombination = winCombinations.get(combination);
                     double combinationReward = winCombination.getRewardMultiplier();
-                    rewardBySymbol = rewardBySymbol*combinationReward;
+                    rewardBySymbol = rewardBySymbol * combinationReward;
                 }
-                totalReward = totalReward + rewardBySymbol*amount;
+                totalReward = totalReward + rewardBySymbol * amount;
             }
         }
 
-        if(!appliedBonusSymbols.isEmpty()){
+        if (!appliedBonusSymbols.isEmpty()) {
             /* Bonus symbols might occur multiple times in general, also same bonus symbol might appear multiple times
             I have made the choice to apply all multiply rewards first then extra ones */
             double allMultiplyRewards = 1.0;
             double allExtraRewards = 0.0;
-            for(String bonus:appliedBonusSymbols){
+            for (String bonus : appliedBonusSymbols) {
                 Symbol symbol = symbols.get(bonus);
-                if("multiply_reward".equals(symbol.getImpact())){
-                    Double rewardMultiplier =symbol.getRewardMultiplier()*getSymbolCounts().get(bonus);
-                    allMultiplyRewards = allMultiplyRewards* rewardMultiplier;
+                if ("multiply_reward".equals(symbol.getImpact())) {
+                    Double rewardMultiplier = symbol.getRewardMultiplier() * getSymbolCounts().get(bonus);
+                    allMultiplyRewards = allMultiplyRewards * rewardMultiplier;
                 }
             }
-            for(String bonus:appliedBonusSymbols) {
+            for (String bonus : appliedBonusSymbols) {
                 Symbol symbol = symbols.get(bonus);
-                if("extra_bonus".equals(symbol.getImpact())){
-                    Integer extra =symbol.getExtra() * getSymbolCounts().get(bonus);
-                    allExtraRewards = allExtraRewards +extra;
+                if ("extra_bonus".equals(symbol.getImpact())) {
+                    Integer extra = symbol.getExtra() * getSymbolCounts().get(bonus);
+                    allExtraRewards = allExtraRewards + extra;
                 }
             }
-            if(totalReward>0){
-                totalReward =totalReward*allMultiplyRewards+allExtraRewards;
+            if (totalReward > 0) {
+                totalReward = totalReward * allMultiplyRewards + allExtraRewards;
             }
         }
         return totalReward;
     }
 
-
-    private String [][] generateRandomMatrix() throws Exception {
-        Map<String,Double> normalizedProbabilities = getNormalizedProbabilities();
+    /**
+     *
+     * @return matrix
+     * @throws Exception
+     */
+    private String[][] generateRandomMatrix() throws Exception {
+        Map<String, Double> normalizedProbabilities = getNormalizedProbabilities();
         String[][] matrix = new String[rows][columns];
-        Random random = new Random();
-
-        for(int i=0;i <rows;i++){
-            for(int j=0;j<columns;j++){
-                String symbol = getRandomSymbol(normalizedProbabilities,random);
-                matrix[i][j] =symbol;
-                symbolCounts.put(symbol,symbolCounts.getOrDefault(symbol,0)+1);
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < columns; j++) {
+                String symbol = getRandomSymbol(normalizedProbabilities, random);
+                matrix[i][j] = symbol;
+                symbolCounts.put(symbol, symbolCounts.getOrDefault(symbol, 0) + 1);
             }
         }
         return matrix;
     }
 
-    private String getRandomSymbol(Map<String,Double> normalizedProbabilities,Random random) throws Exception {
 
-        double r =random.nextDouble();
-        double cumulativeProbability =0.0;
+    /**
+     * @param normalizedProbabilities
+     * @param random
+     * @return
+     * @throws Exception
+     */
+    private String getRandomSymbol(Map<String, Double> normalizedProbabilities, Random random) throws Exception {
+
+        double r = random.nextDouble();
+        double cumulativeProbability = 0.0;
 
         for (Map.Entry<String, Double> entry : normalizedProbabilities.entrySet()) {
             String symbol = entry.getKey();
             Double probability = entry.getValue();
             cumulativeProbability = cumulativeProbability + probability;
-            if(r <=cumulativeProbability){
+            if (r <= cumulativeProbability) {
                 return symbol;
             }
         }
         throw new Exception("Error while generating Random Symbol");
     }
 
-    private Map<String,Double> getNormalizedProbabilities(){
+    /**
+     *
+     * @return normalizedProbabilities
+     */
+    private Map<String, Double> getNormalizedProbabilities() {
 
-        Map<String,Double> normalizedProbabilities = new HashMap<>();
+        Map<String, Double> normalizedProbabilities = new HashMap<>();
         Integer sumStandardProbabilities = standardProbabilities.values().stream().mapToInt(Integer::intValue).sum();
         Integer sumBonusProbabilities = bonusProbabilities.values().stream().mapToInt(Integer::intValue).sum();
         for (Map.Entry<String, Integer> entry : standardProbabilities.entrySet()) {
             String symbol = entry.getKey();
             Integer probability = entry.getValue();
-            Double normalizedProbability = probability.doubleValue()/sumStandardProbabilities.doubleValue();
-            normalizedProbabilities.put(symbol,normalizedProbability);
+            Double normalizedProbability = probability.doubleValue() / sumStandardProbabilities.doubleValue();
+            normalizedProbabilities.put(symbol, normalizedProbability);
         }
         for (Map.Entry<String, Integer> entry : bonusProbabilities.entrySet()) {
             String symbol = entry.getKey();
             Integer probability = entry.getValue();
-            Double normalizedProbability = probability.doubleValue()/sumBonusProbabilities.doubleValue();
-            normalizedProbabilities.put(symbol,normalizedProbability);
+            Double normalizedProbability = probability.doubleValue() / sumBonusProbabilities.doubleValue();
+            normalizedProbabilities.put(symbol, normalizedProbability);
         }
         return normalizedProbabilities;
     }
 
+    /**
+     *
+     * @param matrix
+     */
     private void getHorizontalLines(String[][] matrix) {
-        int rows = matrix.length;
+        int rowsNumber = matrix.length;
         int cols = matrix[0].length;
 
-        for (int i = 0; i < rows; i++) {
+        for (int i = 0; i < rowsNumber; i++) {
             String symbol = matrix[i][0];
             boolean isHorizontalLine = true;
             for (int j = 1; j < cols; j++) {
@@ -235,13 +261,16 @@ public class ScratchGame {
         }
     }
 
+    /**
+     * @param matrix
+     */
     private void getVerticalLines(String[][] matrix) {
-        int rows = matrix.length;
+        int rowsNumber = matrix.length;
         int cols = matrix[0].length;
         for (int j = 0; j < cols; j++) {
             String symbol = matrix[0][j];
             boolean isVerticalLine = true;
-            for (int i = 1; i < rows; i++) {
+            for (int i = 1; i < rowsNumber; i++) {
                 if (!matrix[i][j].equals(symbol)) {
                     isVerticalLine = false;
                     break;
@@ -253,11 +282,15 @@ public class ScratchGame {
         }
     }
 
+    /**
+     *
+     * @param matrix
+     */
     private void getLeftToRightDiagonal(String[][] matrix) {
-        int rows = matrix.length;
+        int rowsNumber = matrix.length;
         String symbol = matrix[0][0];
         boolean isDiagonalLine = true;
-        for (int i = 1; i < rows; i++) {
+        for (int i = 1; i < rowsNumber; i++) {
             if (!matrix[i][i].equals(symbol)) {
                 isDiagonalLine = false;
                 break;
@@ -268,13 +301,17 @@ public class ScratchGame {
         }
     }
 
+    /**
+     *
+     * @param matrix
+     */
     private void getRightToLeftDiagonal(String[][] matrix) {
-        int rows = matrix.length;
+        int rowsNumber = matrix.length;
         int cols = matrix[0].length;
         String symbol = matrix[0][cols - 1];
         boolean isDiagonalLine = true;
 
-        for (int i = 1; i < rows; i++) {
+        for (int i = 1; i < rowsNumber; i++) {
             if (!matrix[i][cols - 1 - i].equals(symbol)) {
                 isDiagonalLine = false;
                 break;
@@ -284,8 +321,8 @@ public class ScratchGame {
             rightToLeftDiagonal.add(symbol);
         }
     }
-
-    private Map<String, Integer> getSymbolCounts(){
+    private Map<String, Integer> getSymbolCounts() {
         return this.symbolCounts;
     }
+
 }
